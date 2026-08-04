@@ -1,62 +1,144 @@
-# ConvoReach
+<div align="center">
+  <img src="https://raw.githubusercontent.com/open-wa/wa-automate-nodejs/master/docs/logo.png" alt="ConvoReach Logo" width="120" />
+  <h1>ConvoReach</h1>
+  <p><b>An Open Source WhatsApp CRM, Automation & Bulk-Messaging Platform</b></p>
 
-ConvoReach is a comprehensive WhatsApp CRM and bulk-messaging platform. This repository contains both the frontend UI and the backend API services.
+  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+  [![React](https://img.shields.io/badge/React-19.0-blue.svg)](https://reactjs.org/)
+  [![NestJS](https://img.shields.io/badge/NestJS-11.0-red.svg)](https://nestjs.com/)
+  [![TailwindCSS](https://img.shields.io/badge/Tailwind-4.0-38B2AC.svg)](https://tailwindcss.com/)
+</div>
 
-## 📂 Folder Structure
+<br />
 
-This is a monorepo containing two main projects:
+**ConvoReach** is a powerful, self-hosted Customer Relationship Management (CRM) platform built specifically for WhatsApp. It combines a robust, multi-engine backend API (powered by NestJS and OpenWA) with a stunning, highly responsive React frontend dashboard.
 
-- `/frontend` - The React/Vite frontend application (Dashboard, Flows, Inbox, Contacts).
-- `/backend` - The Node.js backend (OpenWa API, WhatsApp Web JS integration, Authentication).
+Whether you need to manage customer support via an Inbox, automate workflows with Flow Builders, or send massive Broadcast campaigns, ConvoReach provides a full-stack solution to scale your WhatsApp operations without vendor lock-in.
 
 ---
 
-## 🚀 Getting Started (Local Development)
+## ✨ Key Features
 
-To run this project locally, you will need to open two separate terminals—one for the frontend and one for the backend.
+### 💻 Frontend (Dashboard & CRM)
+- **Unified Inbox:** Manage all your WhatsApp conversations in a beautiful, real-time chat interface.
+- **Visual Flow Builder:** Drag-and-drop node canvas (using React Flow) to build complex chatbots, auto-responders, and decision trees.
+- **Broadcast Engine:** Send bulk marketing messages with scheduling, delivery tracking, and templating.
+- **Contact Management:** A fully-featured CRM to store customer data, tags, and custom fields.
+- **Real-time Analytics:** Track session statuses, message delivery rates, and active conversations using ApexCharts.
+- **Multi-device Support:** Easily link and manage multiple WhatsApp numbers (sessions) via QR code scanning directly in the dashboard.
 
-### 1. Start the Backend
+### ⚙️ Backend (API Gateway)
+- **Multi-Engine Architecture:** Seamlessly switch between WhatsApp Web JS and Baileys engines for maximum stability.
+- **Queue-Based Processing:** Built on BullMQ and Redis to ensure reliable, high-throughput message delivery and webhook processing.
+- **Database Agnostic:** Uses TypeORM, allowing you to run lightweight instances on SQLite or scale up to enterprise workloads on PostgreSQL.
+- **Real-time WebSockets:** Powered by Socket.io for instantaneous UI updates when messages arrive or session statuses change.
+- **Extensive Webhooks:** Forward incoming messages and events to your own external services effortlessly.
 
-The backend handles database connections, WhatsApp sessions, and API requests.
+---
+
+## 🛠️ Technology Stack
+
+| Domain | Technologies |
+| :--- | :--- |
+| **Frontend** | React 19, Vite, Tailwind CSS v4, React Router 7, ApexCharts, Socket.io-client, FullCalendar |
+| **Backend** | NestJS 11, TypeORM, BullMQ, Redis, Passport (JWT Auth), Socket.io, Express |
+| **WhatsApp Core** | @whiskeysockets/baileys, whatsapp-web.js |
+| **Database** | SQLite (Default for Dev) / PostgreSQL (Production ready) |
+
+---
+
+## 📂 Repository Structure
+
+This repository is organized as a monorepo, keeping the client and server code neatly separated:
+
+```text
+convoreach/
+├── frontend/             # React/Vite Dashboard Application
+│   ├── src/
+│   │   ├── components/   # Reusable UI elements (Buttons, Modals, Forms)
+│   │   ├── pages/        # Dashboard, Inbox, Flows, Contacts, Broadcasts
+│   │   ├── context/      # React Context (Auth, Theme)
+│   │   └── services/     # API integration (openwa.ts, inbox.api.ts)
+│   └── package.json
+│
+└── backend/              # NestJS API Gateway
+    ├── src/
+    │   ├── engine/       # WhatsApp Adapters (Baileys, WWebJS)
+    │   ├── modules/      # Auth, CRM, Inbox, Webhook, Broadcast, Message
+    │   └── database/     # TypeORM migrations and entities
+    └── package.json
+```
+
+---
+
+## 🚀 Getting Started (Local Setup)
+
+To run ConvoReach locally, you need [Node.js (v20+)](https://nodejs.org/) installed on your machine. You will need to run both the frontend and backend simultaneously in separate terminal windows.
+
+### 1. Setup the Backend API
+The backend acts as the bridge to WhatsApp and serves the database.
 
 ```bash
 cd backend
 npm install
+
+# Optional: Copy the example environment file and adjust if necessary
+cp .env.example .env
+
+# Start the NestJS development server
 npm run dev
 ```
-*By default, the backend runs on port **2785**.*
+*The backend API will start on `http://localhost:2785`.*
 
-### 2. Start the Frontend
-
-The frontend is built with Vite and React.
+### 2. Setup the Frontend Dashboard
+The frontend is the UI you will interact with in your browser.
 
 ```bash
 cd frontend
 npm install
+
+# Create an environment file to point to the backend
+echo VITE_API_URL=http://localhost:2785 > .env
+
+# Start the Vite development server
 npm run dev
 ```
-*By default, the frontend runs on port **5173**.*
+*The dashboard will start on `http://localhost:5173`.*
 
 ---
 
-## ⚙️ Environment Variables
+## ☁️ Deployment (Production)
 
-For security reasons, `.env` files are not pushed to this repository. You must create them manually in both folders based on the `.env.example` templates.
+To deploy ConvoReach to a production environment (like an Azure Ubuntu VM or AWS EC2), follow these general steps:
 
-### Backend (`/backend/.env`)
-Create a `.env` file inside the `backend` folder containing your secret keys, database paths, and port configurations.
-
-### Frontend (`/frontend/.env`)
-Create a `.env` file inside the `frontend` folder containing the API URL pointing to the backend. Example:
-```env
-VITE_API_URL=http://localhost:2785
-```
+1. **Install Prerequisites:** Ensure your server has Node.js, Git, PM2, Redis, and Nginx installed.
+2. **Clone the Repo:** `git clone https://github.com/your-username/Convoreach-App.git`
+3. **Run the Backend (PM2):**
+   ```bash
+   cd backend
+   npm install
+   npm run build
+   pm2 start dist/main.js --name "convoreach-api"
+   ```
+4. **Build the Frontend:**
+   ```bash
+   cd ../frontend
+   npm install
+   npm run build
+   ```
+5. **Configure Nginx:** Set up an Nginx reverse proxy to serve the frontend `dist` folder on port `80` (or `443` for SSL) and proxy `/api/*` requests to your backend running on `localhost:2785`.
 
 ---
 
-## ☁️ Deployment (Azure / Production)
+## 🛡️ Security & Privacy
 
-1. **Prerequisites:** Ensure you have an Ubuntu VM with Node.js, PM2, and Nginx installed.
-2. **Backend:** Clone the repository, navigate to `backend`, run `npm install`, create the `.env` file, and start it using PM2 (`pm2 start npm --name "convoreach-api" -- start`).
-3. **Frontend:** Navigate to `frontend`, run `npm install`, add your production VM IP to the `.env` file, and run `npm run build`.
-4. **Nginx:** Configure Nginx to serve the frontend `dist` folder on port 80 and proxy `/api` requests to your PM2 backend on port 2785.
+ConvoReach is a self-hosted solution. **Your data belongs to you.**
+- Messages and customer contacts are stored in your own local database (SQLite/PostgreSQL).
+- WhatsApp session data and tokens (e.g., `.wwebjs_auth`) remain strictly on your server and are explicitly ignored by Git to prevent accidental credential leaks.
+- API endpoints are protected using JWT-based authentication.
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
