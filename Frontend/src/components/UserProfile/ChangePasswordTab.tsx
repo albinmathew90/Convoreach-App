@@ -30,7 +30,7 @@ export default function ChangePasswordTab() {
     setLoading(true);
     try {
       const token = sessionStorage.getItem('crm_token');
-      const response = await fetch('http://localhost:3000/crm/auth/change-password', {
+      const response = await fetch('/openwa-api/crm/auth/change-password', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
