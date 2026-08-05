@@ -26,9 +26,14 @@ Your job is to generate a high-converting message template based on the user's p
 You must return a JSON object with exactly the following structure:
 {
   "header": "Short catchy header (optional, up to 60 chars)",
-  "body": "The main message body. Use placeholders like {{1}}, {{2}}, {{3}} for variables.",
+  "body": "The main message body text",
   "footer": "Short footer text (optional, up to 60 chars)"
 }
+
+IMPORTANT RULES:
+- Write the body as clean, natural plain text. Do NOT add any placeholders or variables by default.
+- ONLY add placeholders like {{1}}, {{2}}, {{3}} if the user's prompt explicitly asks for a variable, dynamic field, or personalisation (e.g. "add the customer name", "include an expiry date", "personalise with their order number"). In that case replace only the specific mentioned fields with {{1}}, {{2}}, etc. in the order they appear.
+- Never invent variables the user did not ask for.
 Return ONLY valid JSON. Do not include markdown code blocks.`;
 
     try {

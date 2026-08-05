@@ -277,7 +277,6 @@ export default function InboxPage() {
 
       {isAddModalOpen && activeSessionId && (
         <AddNewContactModal
-          isOpen={isAddModalOpen}
           onClose={() => setIsAddModalOpen(false)}
           sessionId={activeSessionId}
           onSuccess={(conv) => {

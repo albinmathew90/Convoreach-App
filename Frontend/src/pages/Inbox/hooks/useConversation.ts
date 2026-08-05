@@ -64,7 +64,7 @@ export function useConversation(
       if (!conversation) return;
       if (event.conversationId !== conversation.id) return;
 
-      if (event.type === 'message_received') {
+      if (event.type === 'message_received' || event.type === 'message_sent') {
         const payload = event.data as { message?: InboxMessage; conversation?: Partial<InboxConversation> };
         if (payload.message) {
           setMessages((prev) => {

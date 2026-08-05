@@ -116,7 +116,8 @@ export interface SendReplyPayload {
 export type InboxEventType =
   | 'conversation_created'
   | 'conversation_updated'
-  | 'message_received';
+  | 'message_received'
+  | 'message_sent';
 
 export interface InboxSSEEvent {
   type: InboxEventType;

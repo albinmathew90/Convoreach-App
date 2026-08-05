@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { InboxConversation, InboxFilter, InboxSSEEvent } from '../types/inbox.types';
 import * as api from '../services/inbox.api';
+import { emitGlobalNotification } from '../../../components/header/NotificationDropdown';
 
 const SSE_URL = '/openwa-api/inbox/events';
 const POLL_INTERVAL = 8000; // 8s fallback polling
@@ -183,8 +184,8 @@ export function useInbox(sessionId: string | null) {
           .map((c) => (c.id === event.conversationId ? { ...c, ...updatedData } : c))
           .filter((c) => matchesFilter(c, filterRef.current)),
       );
-    } else if (event.type === 'message_received') {
-      // A new incoming message arrived — update the conversation's preview & unread count
+    } else if (event.type === 'message_received' || event.type === 'message_sent') {
+      // A new incoming or outgoing message arrived — update the conversation's preview & unread count
       const payload = event.data as { message?: unknown; conversation?: InboxConversation };
       if (payload.conversation) {
         setConversations((prev) =>
@@ -200,8 +201,22 @@ export function useInbox(sessionId: string | null) {
             ),
         );
 
-        // Browser notification
-        showBrowserNotification(payload.conversation as InboxConversation);
+        // Trigger in-app toast + bell badge via global bridge
+        // Only for truly incoming messages (not our own outgoing ones)
+        if (event.type === 'message_received') {
+          const conv = payload.conversation as InboxConversation;
+          const msgPayload = payload.message as any;
+          emitGlobalNotification({
+            id: msgPayload?.id ?? event.conversationId + '-' + Date.now(),
+            chatName: conv.contactName ?? undefined,
+            from: conv.chatId ?? '',
+            body: conv.lastMessageBody || '',
+            type: 'text',
+            timestamp: msgPayload?.timestamp ?? Math.floor(Date.now() / 1000),
+          });
+          // Also fire OS notification
+          showBrowserNotification(conv);
+        }
       }
     }
   }, []);

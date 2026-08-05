@@ -495,9 +495,37 @@ export class InboxService implements OnModuleInit {
 
       if (!chatId || !sid) return;
 
+      // Skip group chats — inbox is for 1:1 conversations only.
+      if (chatId.endsWith('@g.us') || chatId.endsWith('@broadcast')) return;
+
+      const isLidChat = chatId.endsWith('@lid');
+
+      // Only process messages that have real user content: a text body or a media attachment.
+      // System notifications, empty sync events, call logs, etc. have no body and no media
+      // — creating a conversation from them produces the "No messages yet" ghost entries.
+      const msgType = this.detectMessageType(data);
+      const body = this.extractBody(data, msgType);
+      const hasMedia = !!(
+        (data['media'] as Record<string, unknown> | undefined)?.mimetype ||
+        (data['media'] as Record<string, unknown> | undefined)?.url
+      );
+      const CONTENT_TYPES = new Set([
+        InboxMessageType.TEXT, InboxMessageType.IMAGE, InboxMessageType.VIDEO,
+        InboxMessageType.AUDIO, InboxMessageType.VOICE, InboxMessageType.DOCUMENT,
+        InboxMessageType.STICKER, InboxMessageType.LOCATION, InboxMessageType.CONTACT_CARD,
+      ]);
+      if (!CONTENT_TYPES.has(msgType) && !hasMedia) return;
+      if (msgType === InboxMessageType.TEXT && !body?.trim()) return;
+
       let conv = await this.findConversationByChatId(chatId, sid);
       
       if (!conv) {
+        if (isLidChat) {
+          // Skip creating a new conversation for an outgoing @lid message because we
+          // cannot resolve the real phone number from an outgoing message event.
+          // The conversation should be created by the first incoming message.
+          return;
+        }
         conv = await this.conversationRepo.save(
           this.conversationRepo.create({
             sessionId: sid,
@@ -518,8 +546,6 @@ export class InboxService implements OnModuleInit {
 
       if (conv.isBlocked) return;
 
-      const msgType = this.detectMessageType(data);
-      const body = this.extractBody(data, msgType);
       const waMessageId = (data['id'] ?? data['waMessageId']) as string | undefined;
       const timestamp = data['timestamp'] as number | undefined;
 
@@ -573,17 +599,54 @@ export class InboxService implements OnModuleInit {
 
       if (!chatId || !sid) return;
 
+      // Skip @lid contacts that WhatsApp has not resolved to a real phone number yet.
+      // These are internal privacy IDs synced during history — creating a conversation
+      // with a LID as the "phone" fills the inbox with meaningless 15-digit numbers.
+      // Once the backend resolves the real number (via RESOLVE_LID_TO_PHONE) the
+      // next incoming message from that contact will carry senderPhone and land correctly.
+      const isLidChat = chatId.endsWith('@lid');
+      if (isLidChat && !senderPhone) {
+        return;
+      }
+
       const fromMe = (data['fromMe'] === true || data['isFromMe'] === true);
       const contact = data['contact'] as Record<string, string> | undefined;
       const senderName = (contact?.name ?? contact?.pushName ?? contact?.shortName ?? data['pushName'] ?? data['notifyName'] ?? data['verifiedName'] ?? data['name']) as string | undefined;
 
+      // Use the resolved real phone if available, otherwise fall back to chatId prefix.
+      // For @lid senders we know senderPhone is set at this point (guarded above).
+      const resolvedPhone = senderPhone ?? (isLidChat ? null : chatId.split('@')[0]);
+      if (!resolvedPhone) return;
+
+      // Skip group chats — inbox is for 1:1 conversations only.
+      if (chatId.endsWith('@g.us') || chatId.endsWith('@broadcast')) return;
+
+      // Only process messages that carry real user content.
+      // System events ("end-to-end encrypted" notice, ephemeral change, etc.) and history-sync
+      // notifications come in with no body and no media. Storing them produces the
+      // "No messages yet" ghost conversations the user sees after reconnecting.
+      const msgType = this.detectMessageType(data);
+      const body = this.extractBody(data, msgType);
+      const hasMedia = !!(
+        (data['media'] as Record<string, unknown> | undefined)?.mimetype ||
+        (data['media'] as Record<string, unknown> | undefined)?.url
+      );
+      const CONTENT_TYPES = new Set([
+        InboxMessageType.TEXT, InboxMessageType.IMAGE, InboxMessageType.VIDEO,
+        InboxMessageType.AUDIO, InboxMessageType.VOICE, InboxMessageType.DOCUMENT,
+        InboxMessageType.STICKER, InboxMessageType.LOCATION, InboxMessageType.CONTACT_CARD,
+      ]);
+      if (!CONTENT_TYPES.has(msgType) && !hasMedia) return;
+      if (msgType === InboxMessageType.TEXT && !body?.trim()) return;
+
       // Auto-create conversation for inbound messages so the Flow Builder works for new leads
       let conv = await this.findConversationByChatId(chatId, sid);
       
-      const phoneToMatch = senderPhone ?? chatId.split('@')[0];
-      if (!conv && phoneToMatch) {
+      // Also try matching by resolved phone in case the conversation was already created
+      // under the real phone number (e.g. from a previous session or campaign send).
+      if (!conv && resolvedPhone) {
         conv = await this.conversationRepo.findOne({
-          where: { contactPhone: phoneToMatch, sessionId: sid },
+          where: { contactPhone: resolvedPhone, sessionId: sid },
           order: { lastMessageAt: 'DESC' }
         });
       }
@@ -594,7 +657,7 @@ export class InboxService implements OnModuleInit {
             sessionId: sid,
             chatId,
             contactName: senderName || null,
-            contactPhone: senderPhone ?? chatId.split('@')[0],
+            contactPhone: resolvedPhone,
             lastMessageDirection: fromMe ? 'outgoing' : 'incoming',
             lastMessageAt: new Date(),
             unreadCount: 0,
@@ -609,8 +672,6 @@ export class InboxService implements OnModuleInit {
 
       if (conv.isBlocked) return;
 
-      const msgType = this.detectMessageType(data);
-      const body = this.extractBody(data, msgType);
       const waMessageId = data['id'] as string | undefined;
       const timestamp = data['timestamp'] as number | undefined;
 
@@ -652,8 +713,10 @@ export class InboxService implements OnModuleInit {
         updatePayload.contactName = senderName;
       }
       
-      if (senderPhone && conv.contactPhone !== senderPhone) {
-        updatePayload.contactPhone = senderPhone;
+      // If the backend resolved a real phone number for a formerly-LID contact, upgrade the
+      // stored contactPhone so future lookups and the UI show the real number.
+      if (resolvedPhone && conv.contactPhone !== resolvedPhone) {
+        updatePayload.contactPhone = resolvedPhone;
       }
       
       if (!fromMe) {
