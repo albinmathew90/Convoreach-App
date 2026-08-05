@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://raw.githubusercontent.com/open-wa/wa-automate-nodejs/master/docs/logo.png" alt="ConvoReach Logo" width="120" />
+  <img width="180" height="180" alt="apple-touch-icon" src="https://github.com/user-attachments/assets/1aa6467a-b41e-49b0-a438-05b7ee5ae4ed" />
   <h1>ConvoReach</h1>
   <p><b>An Open Source WhatsApp CRM, Automation & Bulk-Messaging Platform</b></p>
 
@@ -7,7 +7,8 @@
   [![React](https://img.shields.io/badge/React-19.0-blue.svg)](https://reactjs.org/)
   [![NestJS](https://img.shields.io/badge/NestJS-11.0-red.svg)](https://nestjs.com/)
   [![TailwindCSS](https://img.shields.io/badge/Tailwind-4.0-38B2AC.svg)](https://tailwindcss.com/)
-</div>
+
+
 
 <br />
 
